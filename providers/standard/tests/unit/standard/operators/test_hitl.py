@@ -30,6 +30,7 @@ from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 
+import pytest
 from sqlalchemy import select
 
 from airflow.models import TaskInstance, Trigger

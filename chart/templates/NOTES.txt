@@ -644,7 +644,13 @@ DEPRECATION WARNING:
     Please change your values as support for the old name will be dropped in a future release.
 
 {{- end }}
-
+{{- if .Values.webserverSecretKeySecretName }}
+#################################################################################
+# WARNING: `webserverSecretKeySecretName` is deprecated and will be removed.    #
+# The Webserver is replaced by the API server in Airflow 3.0.                   #
+# Please use `apiSecretKeySecretName` instead.                                  #
+#################################################################################
+{{- end }}
 {{- if not (or .Values.webserverSecretKey .Values.webserverSecretKeySecretName .Values.apiSecretKey .Values.apiSecretKeySecretName) }}
 {{ if (semverCompare ">=3.0.0" .Values.airflowVersion) }}
 #####################################################

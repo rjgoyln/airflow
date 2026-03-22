@@ -565,6 +565,8 @@ jwtSecretName: ~
 webserverSecretKey: ~
 # Add custom annotations to the webserver secret
 webserverSecretAnnotations: {}
+# (DEPRECATED) `webserverSecretKeySecretName` is deprecated.
+# Webserver is removed in Airflow 3.0. Please use `apiSecretKeySecretName` instead.
 webserverSecretKeySecretName: ~
 
 # In order to use kerberos you need to create secret containing the keytab file

@@ -694,7 +694,7 @@ Here is the full list of secrets that can be disabled and replaced by ``_CMD`` a
 +-------------------------------------------------------+------------------------------------------+--------------------------------------------------+
 | ``<RELEASE_NAME>-jwt-secret``                         | ``.Values.jwtSecretName``                | ``AIRFLOW__API_AUTH__JWT_SECRET``                |
 +-------------------------------------------------------+------------------------------------------+--------------------------------------------------+
-| ``<RELEASE_NAME>-webserver-secret-key`` | ``.Values.webserverSecretKeySecretName`` (Deprecated) | ``AIRFLOW__WEBSERVER__SECRET_KEY``
+| ``<RELEASE_NAME>-webserver-secret-key`` | ``.Values.webserverSecretKeySecretName`` (Deprecated) | ``AIRFLOW__WEBSERVER__SECRET_KEY``|
 +-------------------------------------------------------+------------------------------------------+--------------------------------------------------+
 | ``<RELEASE_NAME>-airflow-result-backend``             | ``.Values.data.resultBackendSecretName`` | ``AIRFLOW__CELERY__RESULT_BACKEND``              |
 +-------------------------------------------------------+------------------------------------------+--------------------------------------------------+

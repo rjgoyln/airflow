@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import os
+import shlex
 
 import pytest
 from git import Repo
@@ -364,7 +365,7 @@ class TestGitHook:
 
             with open(askpass_path) as f:
                 content = f.read()
-                assert f"echo '{ACCESS_TOKEN}'" in content
+                assert f"echo {shlex.quote(ACCESS_TOKEN)}" in content
                 assert "#!/bin/sh" in content
         # The askpass script should be cleaned up after exiting the context
         assert not os.path.exists(askpass_path)

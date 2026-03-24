@@ -508,3 +508,15 @@ class TestDatabaseCleanupServiceAccount:
             show_only=["templates/database-cleanup/database-cleanup-serviceaccount.yaml"],
         )
         assert jmespath.search("automountServiceAccountToken", docs[0]) is False
+
+    def test_ttl_seconds_after_finished_is_configurable(self):
+        docs = render_chart(
+            values={
+                "databaseCleanup": {
+                    "enabled": True,
+                    "ttlSecondsAfterFinished": 300,
+                }
+            },
+            show_only=["templates/database-cleanup/database-cleanup-cronjob.yaml"],
+        )
+        assert jmespath.search("spec.jobTemplate.spec.ttlSecondsAfterFinished", docs[0]) == 300

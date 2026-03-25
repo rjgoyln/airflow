@@ -509,14 +509,27 @@ class TestDatabaseCleanupServiceAccount:
         )
         assert jmespath.search("automountServiceAccountToken", docs[0]) is False
 
-    def test_ttl_seconds_after_finished_is_configurable(self):
+    @pytest.mark.parametrize(
+        ("ttl_value", "expected_rendered"),
+        [
+            (300, 300),
+            (0, 0),
+            (None, None),
+        ],
+    )
+    def test_ttl_seconds_after_finished_rendering(self, ttl_value, expected_rendered):
+        values = {"databaseCleanup": {"enabled": True}}
+        if ttl_value is not None:
+            values["databaseCleanup"]["ttlSecondsAfterFinished"] = ttl_value
+
         docs = render_chart(
-            values={
-                "databaseCleanup": {
-                    "enabled": True,
-                    "ttlSecondsAfterFinished": 300,
-                }
-            },
+            values=values,
             show_only=["templates/database-cleanup/database-cleanup-cronjob.yaml"],
         )
-        assert jmespath.search("spec.jobTemplate.spec.ttlSecondsAfterFinished", docs[0]) == 300
+
+        actual_ttl = jmespath.search("spec.jobTemplate.spec.ttlSecondsAfterFinished", docs[0])
+
+        if expected_rendered is not None:
+            assert actual_ttl == expected_rendered
+        else:
+            assert "ttlSecondsAfterFinished" not in docs[0]["spec"]["jobTemplate"]["spec"]

@@ -244,7 +244,7 @@ class Credentials:
                         if self.client_kind == ClientKind.CLI:
                             raise AirflowCtlCredentialNotFoundException(
                                 f"Debug credentials file not found: {debug_creds_path}. "
-                                "Set AIRFLOW_CLI_DEBUG_MODE=false or login in debug mode first."
+                                "Set AIRFLOW_CLI_DEBUG_MODE=false or log in with debug mode enabled first."
                             ) from e
                         self.api_token = None
                 else:

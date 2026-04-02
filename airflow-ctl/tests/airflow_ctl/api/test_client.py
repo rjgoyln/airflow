@@ -387,7 +387,7 @@ class TestSaveKeyringPatching:
 
         config_path = tmp_path / "TEST_DEBUG.json"
         config_path.write_text(json.dumps({"api_url": "http://localhost:8080"}), encoding="utf-8")
-        # 不建立 debug_creds_TEST_DEBUG.json，模擬缺檔
+        # Intentionally do not create debug_creds_TEST_DEBUG.json to simulate a missing file
 
         creds = Credentials(client_kind=ClientKind.CLI, api_environment="TEST_DEBUG")
         with pytest.raises(AirflowCtlCredentialNotFoundException, match="Debug credentials file not found"):

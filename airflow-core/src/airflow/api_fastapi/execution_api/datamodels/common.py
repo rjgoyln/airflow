@@ -17,9 +17,10 @@
 from __future__ import annotations
 
 from airflow.api_fastapi.core_api.base import BaseModel
+from pydantic import Field
 
 
 class MessageResponse(BaseModel):
     """Message response schema."""
 
-    message: str
+    message: str = Field(title="Message")

@@ -23,7 +23,6 @@ import getpass
 import json
 import logging
 import os
-import re
 import sys
 from collections.abc import Callable
 from functools import wraps
@@ -146,15 +145,6 @@ def _bounded_get_new_password() -> str:
     )
 
 
-_VALID_ENV_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
-
-
-def _validate_api_environment(api_environment: str) -> str:
-    if not _VALID_ENV_RE.fullmatch(api_environment):
-        raise ValueError("Invalid AIRFLOW_CLI_ENVIRONMENT")
-    return api_environment
-
-
 def _safe_path_under_airflow_home(airflow_home: str, filename: str) -> str:
     base = Path(airflow_home).resolve()
     target = (base / filename).resolve()
@@ -183,14 +173,13 @@ class Credentials:
         raw_env = os.getenv("AIRFLOW_CLI_ENVIRONMENT")
         if raw_env is None:
             raw_env = api_environment
-        self.api_environment = _validate_api_environment(raw_env)
         self.client_kind = client_kind
+        self.api_environment = os.getenv("AIRFLOW_CLI_ENVIRONMENT") or api_environment
 
     @property
     def input_cli_config_file(self) -> str:
         """Generate path for the CLI config file."""
-        env = _validate_api_environment(self.api_environment)
-        return f"{env}.json"
+        return f"{self.api_environment}.json"
 
     @staticmethod
     def token_key_for_environment(api_environment: str) -> str:

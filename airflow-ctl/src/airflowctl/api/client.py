@@ -148,7 +148,7 @@ def _bounded_get_new_password() -> str:
 def _safe_path_under_airflow_home(airflow_home: str, filename: str) -> str:
     base = Path(airflow_home).resolve()
     target = (base / filename).resolve()
-    if base not in target.parents and target != base:
+    if not target.is_relative_to(base):
         raise ValueError(f"Resolved path escapes AIRFLOW_HOME: {target}")
     return str(target)
 

@@ -25,7 +25,6 @@ import shlex
 import stat
 import tempfile
 from typing import Any
-from urllib.parse import quote as urlquote
 
 from airflow.providers.common.compat.sdk import AirflowException, BaseHook
 

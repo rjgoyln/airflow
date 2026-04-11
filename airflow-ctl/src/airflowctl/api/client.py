@@ -63,6 +63,7 @@ from airflowctl.api.operations import (
 )
 from airflowctl.exceptions import (
     AirflowCtlCredentialNotFoundException,
+    AirflowCtlException,
     AirflowCtlKeyringException,
     AirflowCtlNotFoundException,
 )
@@ -149,7 +150,10 @@ def _safe_path_under_airflow_home(airflow_home: str, filename: str) -> str:
     base = Path(airflow_home).resolve()
     target = (base / filename).resolve()
     if not target.is_relative_to(base):
-        raise ValueError(f"Resolved path escapes AIRFLOW_HOME: {target}")
+        raise AirflowCtlException(
+            f"Security Error: Path traversal detected in '{filename}'. "
+            f"The resolved path must stay within AIRFLOW_HOME."
+        )
     return str(target)
 
 
@@ -170,11 +174,15 @@ class Credentials:
     ):
         self.api_url = api_url
         self.api_token = api_token
-        raw_env = os.getenv("AIRFLOW_CLI_ENVIRONMENT")
-        if raw_env is None:
-            raw_env = api_environment
         self.client_kind = client_kind
-        self.api_environment = os.getenv("AIRFLOW_CLI_ENVIRONMENT") or api_environment
+        raw_env = os.getenv("AIRFLOW_CLI_ENVIRONMENT") or api_environment
+        if "/" in raw_env or "\\" in raw_env or ".." in raw_env:
+            raise AirflowCtlException(
+                f"Invalid environment name: '{raw_env}'. "
+                f"Environment names cannot contain path separators ('/', '\\') or '..'."
+            )
+
+        self.api_environment = raw_env
 
     @property
     def input_cli_config_file(self) -> str:

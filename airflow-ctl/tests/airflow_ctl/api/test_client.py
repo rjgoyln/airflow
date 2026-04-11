@@ -32,6 +32,7 @@ from airflowctl.api.client import Client, ClientKind, Credentials, _bounded_get_
 from airflowctl.api.operations import ServerResponseError
 from airflowctl.exceptions import (
     AirflowCtlCredentialNotFoundException,
+    AirflowCtlException,
     AirflowCtlKeyringException,
 )
 
@@ -401,12 +402,12 @@ def test_credentials_accepts_safe_env():
 
 @pytest.mark.parametrize("api_environment", ["../evil", "..\\evil", "a/b", "a\\b"])
 def test_credentials_rejects_unsafe_env_argument(api_environment):
-    with pytest.raises(ValueError, match="environment"):
+    with pytest.raises(AirflowCtlException, match="environment"):
         Credentials(client_kind=ClientKind.CLI, api_environment=api_environment)
 
 
 @pytest.mark.parametrize("api_environment", ["../evil", "..\\evil", "a/b", "a\\b"])
 def test_credentials_rejects_unsafe_env_from_environment_variable(monkeypatch, api_environment):
     monkeypatch.setenv("AIRFLOW_CLI_ENVIRONMENT", api_environment)
-    with pytest.raises(ValueError, match="environment"):
+    with pytest.raises(AirflowCtlException, match="environment"):
         Credentials(client_kind=ClientKind.CLI)

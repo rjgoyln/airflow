@@ -397,3 +397,16 @@ class TestSaveKeyringPatching:
 def test_credentials_accepts_safe_env():
     creds = Credentials(client_kind=ClientKind.CLI, api_environment="prod-us_1")
     assert creds.api_environment == "prod-us_1"
+
+
+@pytest.mark.parametrize("api_environment", ["../evil", "..\\evil", "a/b", "a\\b"])
+def test_credentials_rejects_unsafe_env_argument(api_environment):
+    with pytest.raises(ValueError, match="environment"):
+        Credentials(client_kind=ClientKind.CLI, api_environment=api_environment)
+
+
+@pytest.mark.parametrize("api_environment", ["../evil", "..\\evil", "a/b", "a\\b"])
+def test_credentials_rejects_unsafe_env_from_environment_variable(monkeypatch, api_environment):
+    monkeypatch.setenv("AIRFLOW_CLI_ENVIRONMENT", api_environment)
+    with pytest.raises(ValueError, match="environment"):
+        Credentials(client_kind=ClientKind.CLI)

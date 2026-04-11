@@ -29,6 +29,7 @@ from airflowctl.api.datamodels.generated import (
     BulkCreateActionVariableBody,
     VariableBody,
 )
+from airflowctl.exceptions import AirflowCtlException
 
 
 @provide_api_client(kind=ClientKind.CLI)
@@ -48,11 +49,23 @@ def import_(args, api_client=NEW_API_CLIENT) -> list[str]:
             sys.exit(1)
 
     action_on_existence = BulkActionOnExistence(args.action_on_existing_key)
+
+    if not isinstance(var_json, dict):
+        raise AirflowCtlException(
+            "Invalid JSON format: expected a JSON object (key-value pairs), "
+            f"but got {type(var_json).__name__}."
+        )
+
     vars_to_update = []
     for k, v in var_json.items():
-        value, description = v, None
-        if isinstance(v, dict) and "value" in v:
-            value, description = v["value"], v.get("description")
+        if isinstance(v, dict):
+            if "value" not in v:
+                raise AirflowCtlException(f"Invalid format for key '{k}': missing 'value'.")
+            value = v["value"]
+            description = v.get("description")
+        else:
+            value = v
+            description = None
 
         vars_to_update.append(
             VariableBody(

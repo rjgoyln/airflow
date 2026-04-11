@@ -387,21 +387,45 @@ class TestCliConfigMethods:
         assert ctx.value.code == 1
 
     @staticmethod
-    def _run_list_command_with_optional_dag_id(monkeypatch, dag_id_value):
+    def _run_list_command_with_dag_id(
+        monkeypatch,
+        *,
+        dag_id_value,
+        dag_id_param_type: str,
+        method_has_default: bool,
+    ):
         import airflowctl.api.operations as operations
 
         captured: dict[str, object] = {}
+        dummy_operations_cls: type[object]
 
-        class DummyOperations:
-            def __init__(self, client):
-                self.client = client
+        if method_has_default:
 
-            def list(self, limit: int, dag_id: str = "default-dag"):
-                captured["limit"] = limit
-                captured["dag_id"] = dag_id
-                return {"items": []}
+            class DummyOperationsWithDefault:
+                def __init__(self, client):
+                    self.client = client
 
-        monkeypatch.setattr(operations, "DummyOperations", DummyOperations, raising=False)
+                def list(self, limit: int, dag_id: str = "default-dag"):
+                    captured["limit"] = limit
+                    captured["dag_id"] = dag_id
+                    return {"items": []}
+
+            dummy_operations_cls = DummyOperationsWithDefault
+
+        else:
+
+            class DummyOperationsNoDefault:
+                def __init__(self, client):
+                    self.client = client
+
+                def list(self, limit: int, dag_id: str):
+                    captured["limit"] = limit
+                    captured["dag_id"] = dag_id
+                    return {"items": []}
+
+            dummy_operations_cls = DummyOperationsNoDefault
+
+        monkeypatch.setattr(operations, "DummyOperations", dummy_operations_cls, raising=False)
         monkeypatch.setattr(
             "airflowctl.ctl.cli_config.AirflowConsole.print_as",
             lambda self, data, output: None,
@@ -411,7 +435,7 @@ class TestCliConfigMethods:
         command_factory.operations = [
             {
                 "name": "list",
-                "parameters": [{"limit": "int"}, {"dag_id": "str | None"}],
+                "parameters": [{"limit": "int"}, {"dag_id": dag_id_param_type}],
                 "return_type": "dict",
                 "parent": SimpleNamespace(name="DummyOperations"),
             }
@@ -718,7 +742,24 @@ class TestCliConfigMethods:
         self, monkeypatch, dag_id_value, expected_dag_id
     ):
         """Test optional primitive params are skipped when None and passed when set."""
-        captured = self._run_list_command_with_optional_dag_id(monkeypatch, dag_id_value)
+        captured = self._run_list_command_with_dag_id(
+            monkeypatch,
+            dag_id_value=dag_id_value,
+            dag_id_param_type="str | None",
+            method_has_default=True,
+        )
 
         assert captured["limit"] == 10
         assert captured["dag_id"] == expected_dag_id
+
+    def test_create_func_map_keeps_none_for_required_primitive_params(self, monkeypatch):
+        """Test required primitive params are passed even when parsed value is None."""
+        captured = self._run_list_command_with_dag_id(
+            monkeypatch,
+            dag_id_value=None,
+            dag_id_param_type="str",
+            method_has_default=False,
+        )
+
+        assert captured["limit"] == 10
+        assert captured["dag_id"] is None

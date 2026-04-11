@@ -10847,7 +10847,8 @@
                         "integer",
                         "null"
                     ],
-                    "default": null
+                    "default": null,
+                    "x-docsSection": "Kubernetes"
                 }
             }
         },

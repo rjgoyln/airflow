@@ -648,9 +648,9 @@ class CommandFactory:
             for parameter in api_operation["parameters"]:
                 for parameter_key, parameter_type in parameter.items():
                     if self._is_primitive_type(type_name=parameter_type):
-                        method_params[self._sanitize_method_param_key(parameter_key)] = args_dict[
-                            parameter_key
-                        ]
+                        val = args_dict.get(parameter_key)
+                        if val is not None:
+                            method_params[self._sanitize_method_param_key(parameter_key)] = val
                     else:
                         datamodel = getattr(generated_datamodels, parameter_type)
                         for expanded_parameter in self.datamodels_extended_map[parameter_type]:

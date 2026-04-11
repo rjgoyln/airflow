@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 from argparse import BooleanOptionalAction
 from textwrap import dedent
+from types import SimpleNamespace
 
 import httpx
 import pytest
@@ -385,6 +386,42 @@ class TestCliConfigMethods:
 
         assert ctx.value.code == 1
 
+    @staticmethod
+    def _run_list_command_with_optional_dag_id(monkeypatch, dag_id_value):
+        import airflowctl.api.operations as operations
+
+        captured: dict[str, object] = {}
+
+        class DummyOperations:
+            def __init__(self, client):
+                self.client = client
+
+            def list(self, limit: int, dag_id: str = "default-dag"):
+                captured["limit"] = limit
+                captured["dag_id"] = dag_id
+                return {"items": []}
+
+        monkeypatch.setattr(operations, "DummyOperations", DummyOperations, raising=False)
+        monkeypatch.setattr(
+            "airflowctl.ctl.cli_config.AirflowConsole.print_as",
+            lambda self, data, output: None,
+        )
+
+        command_factory = CommandFactory()
+        command_factory.operations = [
+            {
+                "name": "list",
+                "parameters": [{"limit": "int"}, {"dag_id": "str | None"}],
+                "return_type": "dict",
+                "parent": SimpleNamespace(name="DummyOperations"),
+            }
+        ]
+
+        command_factory._create_func_map_from_operation()
+        generated_func = command_factory.func_map[("list", "DummyOperations")]
+        generated_func(argparse.Namespace(limit=10, dag_id=dag_id_value, output="json"), api_client=object())
+        return captured
+
     def test_add_to_parser_drops_type_for_boolean_optional_action(self):
         """Test add_to_parser removes type for BooleanOptionalAction."""
         parser = argparse.ArgumentParser()
@@ -669,3 +706,19 @@ class TestCliConfigMethods:
                             "Help message should match the help_text.yaml"
                         )
                         return
+
+    @pytest.mark.parametrize(
+        ("dag_id_value", "expected_dag_id"),
+        [
+            (None, "default-dag"),
+            ("manual-dag", "manual-dag"),
+        ],
+    )
+    def test_create_func_map_handles_optional_primitive_params(
+        self, monkeypatch, dag_id_value, expected_dag_id
+    ):
+        """Test optional primitive params are skipped when None and passed when set."""
+        captured = self._run_list_command_with_optional_dag_id(monkeypatch, dag_id_value)
+
+        assert captured["limit"] == 10
+        assert captured["dag_id"] == expected_dag_id

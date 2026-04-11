@@ -2513,6 +2513,20 @@ class TestWorkerSets:
                     ],
                 },
             },
+            {
+                "celery": {
+                    "enableDefault": False,
+                    "extraInitContainers": [{"name": "test", "image": "test"}],
+                    "sets": [
+                        {
+                            "name": "set1",
+                            "extraInitContainers": [
+                                {"name": "{{ .Chart.Name }}", "image": "test-registry/test-repo:test-tag"}
+                            ],
+                        }
+                    ],
+                },
+            },
         ],
     )
     def test_overwrite_extra_init_containers(self, workers_values):
@@ -2542,6 +2556,18 @@ class TestWorkerSets:
                 "extraVolumes": [{"name": "test", "emptyDir": {}}],
                 "celery": {
                     "enableDefault": False,
+                    "sets": [
+                        {
+                            "name": "set1",
+                            "extraVolumes": [{"name": "test-volume-{{ .Chart.Name }}", "emptyDir": {}}],
+                        }
+                    ],
+                },
+            },
+            {
+                "celery": {
+                    "enableDefault": False,
+                    "extraVolumes": [{"name": "test", "emptyDir": {}}],
                     "sets": [
                         {
                             "name": "set1",
@@ -2882,6 +2908,27 @@ class TestWorkerSets:
                 ],
                 "celery": {
                     "enableDefault": False,
+                    "sets": [
+                        {
+                            "name": "set1",
+                            "tolerations": [
+                                {
+                                    "key": "dynamic-pods",
+                                    "operator": "Equal",
+                                    "value": "true",
+                                    "effect": "NoSchedule",
+                                }
+                            ],
+                        }
+                    ],
+                },
+            },
+            {
+                "celery": {
+                    "enableDefault": False,
+                    "tolerations": [
+                        {"key": "not-me", "operator": "Equal", "value": "true", "effect": "NoSchedule"}
+                    ],
                     "sets": [
                         {
                             "name": "set1",

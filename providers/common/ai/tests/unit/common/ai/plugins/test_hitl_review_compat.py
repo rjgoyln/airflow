@@ -16,31 +16,23 @@
 # under the License.
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import pytest
 
-try:
-    from rich_click import RichCommand as _BaseCommand, RichGroup as _BaseGroup
-except ImportError:
-    from click import (  # type: ignore[assignment]
-        Command as _BaseCommand,
-        Group as _BaseGroup,
-    )
+from airflow.providers.common.ai.plugins.hitl_review import HITLReviewPlugin
 
-if TYPE_CHECKING:
-    import click
+from tests_common.test_utils.version_compat import AIRFLOW_V_3_1_PLUS
 
 
-class BreezeCommand(_BaseCommand):
-    """Breeze CLI command that automatically prints reproduction instructions in CI."""
-
-    def invoke(self, ctx: click.Context) -> None:
-        try:
-            return super().invoke(ctx)
-        finally:
-            from airflow_breeze.utils.reproduce_ci import maybe_print_reproduction
-
-            maybe_print_reproduction(ctx)
+def test_hitl_review_plugin_registration_matches_airflow_version():
+    if AIRFLOW_V_3_1_PLUS:
+        assert len(HITLReviewPlugin.fastapi_apps) == 1
+        assert len(HITLReviewPlugin.react_apps) == 1
+    else:
+        assert HITLReviewPlugin.fastapi_apps == []
+        assert HITLReviewPlugin.react_apps == []
 
 
-class BreezeGroup(_BaseGroup):
-    command_class = BreezeCommand
+@pytest.mark.skipif(not AIRFLOW_V_3_1_PLUS, reason="Requires Airflow 3.1+")
+def test_hitl_review_plugin_registers_expected_app_names():
+    assert HITLReviewPlugin.fastapi_apps[0]["name"] == "hitl-review"
+    assert HITLReviewPlugin.react_apps[0]["name"] == "HITL Review"

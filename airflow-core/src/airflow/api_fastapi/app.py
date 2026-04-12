@@ -139,6 +139,20 @@ def get_auth_manager_cls() -> type[BaseAuthManager]:
 
     Useful to save execution time if only static methods need to be called.
     """
+    authn_manager_cls = conf.getimport(section="core", key="authn_manager", fallback=None)
+    authz_manager_cls = conf.getimport(section="core", key="authz_manager", fallback=None)
+
+    if bool(authn_manager_cls) != bool(authz_manager_cls):
+        raise AirflowConfigException(
+            "Split auth manager configuration is incomplete. Please set both "
+            "[core/authn_manager] and [core/authz_manager], or neither."
+        )
+
+    if authn_manager_cls and authz_manager_cls:
+        from airflow.api_fastapi.auth.managers.composable_auth_manager import ComposableAuthManager
+
+        return ComposableAuthManager
+
     auth_manager_cls = conf.getimport(section="core", key="auth_manager")
 
     if not auth_manager_cls:

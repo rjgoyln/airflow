@@ -24,6 +24,8 @@ from fastapi import FastAPI
 
 import airflow.api_fastapi.app as app_module
 import airflow.plugins_manager as plugins_manager
+from airflow.api_fastapi.auth.managers.composable_auth_manager import ComposableAuthManager
+from airflow.exceptions import AirflowConfigException
 
 pytestmark = pytest.mark.db_test
 
@@ -175,3 +177,54 @@ def test_create_auth_manager_thread_safety():
     assert call_count == 1
 
     app_module.purge_cached_app()
+
+
+def test_get_auth_manager_cls_falls_back_to_single_manager_when_split_not_configured():
+    class LegacyAuthManager:
+        pass
+
+    def _getimport(*, section, key, fallback=None):
+        if key in {"authn_manager", "authz_manager"}:
+            return None
+        if key == "auth_manager":
+            return LegacyAuthManager
+        return fallback
+
+    with mock.patch.object(app_module.conf, "getimport", side_effect=_getimport):
+        assert app_module.get_auth_manager_cls() is LegacyAuthManager
+
+
+def test_get_auth_manager_cls_uses_composable_manager_when_split_configured():
+    class AuthN:
+        pass
+
+    class AuthZ:
+        pass
+
+    def _getimport(*, section, key, fallback=None):
+        if key == "authn_manager":
+            return AuthN
+        if key == "authz_manager":
+            return AuthZ
+        if key == "auth_manager":
+            pytest.fail("auth_manager should not be read when split auth is configured")
+        return fallback
+
+    with mock.patch.object(app_module.conf, "getimport", side_effect=_getimport):
+        assert app_module.get_auth_manager_cls() is ComposableAuthManager
+
+
+def test_get_auth_manager_cls_raises_if_split_config_is_partial():
+    class AuthN:
+        pass
+
+    def _getimport(*, section, key, fallback=None):
+        if key == "authn_manager":
+            return AuthN
+        if key == "authz_manager":
+            return None
+        return fallback
+
+    with mock.patch.object(app_module.conf, "getimport", side_effect=_getimport):
+        with pytest.raises(AirflowConfigException, match="Split auth manager configuration is incomplete"):
+            app_module.get_auth_manager_cls()

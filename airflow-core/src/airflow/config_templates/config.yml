@@ -83,6 +83,22 @@ core:
       type: string
       example: ~
       default: "airflow.api_fastapi.auth.managers.simple.simple_auth_manager.SimpleAuthManager"
+    authn_manager:
+      description: |
+        Optional authentication manager class path used with split auth manager mode.
+        When set, ``authz_manager`` must also be set.
+      version_added: 3.2.0
+      type: string
+      example: "airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager"
+      default: ~
+    authz_manager:
+      description: |
+        Optional authorization manager class path used with split auth manager mode.
+        When set, ``authn_manager`` must also be set.
+      version_added: 3.2.0
+      type: string
+      example: "airflow.providers.keycloak.auth_manager.keycloak_auth_manager.KeycloakAuthManager"
+      default: ~
     simple_auth_manager_users:
       description: |
         The list of users and their associated role in simple auth manager. If the simple auth manager is

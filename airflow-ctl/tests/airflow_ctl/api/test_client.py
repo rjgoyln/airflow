@@ -28,7 +28,7 @@ import pytest
 import time_machine
 from httpx import URL
 
-from airflowctl.api.client import Client, ClientKind, Credentials, _bounded_get_new_password
+from airflowctl.api.client import Client, ClientKind, Credentials, _bounded_get_new_password, get_client
 from airflowctl.api.operations import ServerResponseError
 from airflowctl.exceptions import (
     AirflowCtlCredentialNotFoundException,
@@ -214,6 +214,16 @@ class TestCredentials:
 
         assert not os.path.exists(config_dir)
 
+    @patch.dict(os.environ, {"AIRFLOW_CLI_ENVIRONMENT": "TEST_NO_CONFIG_WITH_EXPLICIT_TOKEN"})
+    @patch("airflowctl.api.client.keyring")
+    def test_load_no_config_with_explicit_token(self, mock_keyring):
+        cli_client = ClientKind.CLI
+        credentials = Credentials(client_kind=cli_client, api_token="TEST_TOKEN").load()
+
+        assert credentials.api_token == "TEST_TOKEN"
+        assert credentials.api_url is None
+        mock_keyring.get_password.assert_not_called()
+
     @patch.dict(os.environ, {"AIRFLOW_CLI_ENVIRONMENT": "TEST_KEYRING_VALUE_ERROR"})
     @patch("airflowctl.api.client.keyring")
     def test_load_incorrect_keyring_password(self, mock_keyring):
@@ -398,6 +408,12 @@ class TestSaveKeyringPatching:
 def test_credentials_accepts_safe_env():
     creds = Credentials(client_kind=ClientKind.CLI, api_environment="prod-us_1")
     assert creds.api_environment == "prod-us_1"
+
+
+@patch.dict(os.environ, {"AIRFLOW_CLI_ENVIRONMENT": "TEST_GET_CLIENT_WITH_TOKEN_ONLY"})
+def test_get_client_allows_explicit_token_without_config():
+    with get_client(kind=ClientKind.CLI, api_token="TEST_TOKEN") as client:
+        assert str(client.base_url) == "http://localhost:8080/api/v2/"
 
 
 @pytest.mark.parametrize("api_environment", ["../evil", "..\\evil", "a/b", "a\\b"])

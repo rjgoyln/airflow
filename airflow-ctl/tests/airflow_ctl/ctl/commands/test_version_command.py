@@ -52,12 +52,13 @@ class TestVersionCommand:
             assert "version" in stdout.getvalue()
             assert "git_version" in stdout.getvalue()
             assert "airflowctl_version" in stdout.getvalue()
+            mock_get_client.assert_called_once_with(kind=ClientKind.NO_AUTH)
 
     def test_ctl_version_remote_with_api_token(self, mock_client):
         with mock.patch("airflowctl.ctl.commands.version_command.get_client") as mock_get_client:
             mock_get_client.return_value.__enter__.return_value = mock_client
             version_info(self.parser.parse_args(["version", "--remote", "--api-token", "TOKEN"]))
-            mock_get_client.assert_called_once_with(kind=ClientKind.CLI, api_token="TOKEN")
+            mock_get_client.assert_called_once_with(kind=ClientKind.NO_AUTH)
 
     def test_ctl_version_only_local_version(self, mock_client):
         """Test the version command without --remote does not touch credentials."""

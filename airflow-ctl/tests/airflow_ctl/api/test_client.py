@@ -105,12 +105,16 @@ class TestClient:
         [
             ("http://localhost:8080", ClientKind.CLI, "http://localhost:8080/api/v2/"),
             ("http://localhost:8080", ClientKind.AUTH, "http://localhost:8080/auth/"),
+            ("http://localhost:8080", ClientKind.NO_AUTH, "http://localhost:8080/api/v2/"),
             ("https://example.com", ClientKind.CLI, "https://example.com/api/v2/"),
             ("https://example.com", ClientKind.AUTH, "https://example.com/auth/"),
+            ("https://example.com", ClientKind.NO_AUTH, "https://example.com/api/v2/"),
             ("http://localhost:8080/", ClientKind.CLI, "http://localhost:8080/api/v2/"),
             ("http://localhost:8080/", ClientKind.AUTH, "http://localhost:8080/auth/"),
+            ("http://localhost:8080/", ClientKind.NO_AUTH, "http://localhost:8080/api/v2/"),
             ("https://example.com/", ClientKind.CLI, "https://example.com/api/v2/"),
             ("https://example.com/", ClientKind.AUTH, "https://example.com/auth/"),
+            ("https://example.com/", ClientKind.NO_AUTH, "https://example.com/api/v2/"),
         ],
     )
     def test_refresh_base_url(self, base_url, client_kind, expected_base_url):
@@ -221,6 +225,15 @@ class TestCredentials:
         credentials = Credentials(client_kind=cli_client, api_token="TEST_TOKEN").load()
 
         assert credentials.api_token == "TEST_TOKEN"
+        assert credentials.api_url is None
+        mock_keyring.get_password.assert_not_called()
+
+    @patch.dict(os.environ, {"AIRFLOW_CLI_ENVIRONMENT": "TEST_NO_CONFIG_NO_AUTH"})
+    @patch("airflowctl.api.client.keyring")
+    def test_load_no_config_no_auth_kind(self, mock_keyring):
+        credentials = Credentials(client_kind=ClientKind.NO_AUTH).load()
+
+        assert credentials.api_token is None
         assert credentials.api_url is None
         mock_keyring.get_password.assert_not_called()
 
@@ -414,6 +427,15 @@ def test_credentials_accepts_safe_env():
 def test_get_client_allows_explicit_token_without_config():
     with get_client(kind=ClientKind.CLI, api_token="TEST_TOKEN") as client:
         assert str(client.base_url) == "http://localhost:8080/api/v2/"
+
+
+@patch.dict(os.environ, {"AIRFLOW_CLI_ENVIRONMENT": "TEST_GET_CLIENT_NO_AUTH_WITHOUT_CONFIG"})
+@patch("airflowctl.api.client.keyring")
+def test_get_client_no_auth_without_config(mock_keyring):
+    with get_client(kind=ClientKind.NO_AUTH) as client:
+        assert str(client.base_url) == "http://localhost:8080/api/v2/"
+
+    mock_keyring.get_password.assert_not_called()
 
 
 @pytest.mark.parametrize("api_environment", ["../evil", "..\\evil", "a/b", "a\\b"])

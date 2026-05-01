@@ -893,6 +893,7 @@ class TestSchedulerJob:
         asset_event.source_aliases.append(asset_alias)
         session.add(asset_event)
         session.flush()
+        asset_event.source_aliases.append(asset_alias)
         dr.consumed_asset_events.append(asset_event)
         session.add(dr)
         session.flush()

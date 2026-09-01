@@ -430,6 +430,22 @@ function reinstall_shared_distributions() {
 # contributing-docs/12_provider_distributions.rst.
 PROVIDERS_NEEDING_PRE_EXTRAS_INSTALL=("ibm.mq")
 
+# Keep in sync with EXIT_CODE_UPSTREAM_UNREACHABLE in scripts/in_container/run_pre_extras_install.py.
+PRE_EXTRAS_EXIT_CODE_UPSTREAM_UNREACHABLE=75
+
+function skip_provider_with_unreachable_pre_extras() {
+    local provider_id="${1}"
+    echo
+    echo "${COLOR_YELLOW}Skipping ${provider_id}: its native prerequisites could not be downloaded.${COLOR_RESET}"
+    echo "${COLOR_YELLOW}Failing here would take down every other provider sharing this job, none of${COLOR_RESET}"
+    echo "${COLOR_YELLOW}which is implicated by an outage at the vendor.${COLOR_RESET}"
+    echo
+    if [[ ${GITHUB_ACTIONS=} == "true" ]]; then
+        echo "::warning title=Provider skipped::${provider_id}: native prerequisites could not be downloaded"
+    fi
+    exit 0
+}
+
 function run_pre_extras_install_if_registered() {
     local provider_id="${1}"
     local registered_provider
@@ -440,9 +456,14 @@ function run_pre_extras_install_if_registered() {
             echo
             local env_file
             env_file=$(mktemp)
-            if ! python "${AIRFLOW_SOURCES}/scripts/in_container/run_pre_extras_install.py" \
-                    "${provider_id}" --emit-env-to "${env_file}"; then
+            local pre_extras_exit_code=0
+            python "${AIRFLOW_SOURCES}/scripts/in_container/run_pre_extras_install.py" \
+                "${provider_id}" --emit-env-to "${env_file}" || pre_extras_exit_code=$?
+            if [[ ${pre_extras_exit_code} != "0" ]]; then
                 rm -f "${env_file}"
+                if [[ ${pre_extras_exit_code} == "${PRE_EXTRAS_EXIT_CODE_UPSTREAM_UNREACHABLE}" ]]; then
+                    skip_provider_with_unreachable_pre_extras "${provider_id}"
+                fi
                 echo "${COLOR_RED}Pre-extras install failed for ${provider_id}${COLOR_RESET}"
                 exit 1
             fi

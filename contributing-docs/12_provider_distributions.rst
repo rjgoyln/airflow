@@ -219,6 +219,13 @@ must succeed first. Use the per-provider pre-extras-install manifest:
 
    Any unknown top-level or per-entry key is a hard error.
 
+   If a download cannot be completed because the upstream server is unreachable on every
+   route it tries, the hook skips that provider's test run rather than failing the job. The
+   lowest-dependency workflow packs roughly twenty providers into one job, and an outage at
+   the vendor implicates none of them; the skip is logged and surfaced as a GitHub Actions
+   warning annotation so it does not pass unnoticed. Every other failure — a ``sha256``
+   mismatch above all — still fails the job.
+
 4. **Mock the module in unit tests** by injecting ``sys.modules["<module>"] = MagicMock()`` in
    the provider's ``tests/conftest.py`` before the provider's hooks/operators get imported.
    Regular CI does not install the real package, so the mock is what makes import-time

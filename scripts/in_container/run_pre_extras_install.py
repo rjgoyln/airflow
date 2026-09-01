@@ -57,11 +57,17 @@ ALLOWED_TOP_LEVEL_KEYS = {"downloads", "env"}
 REQUIRED_DOWNLOAD_KEYS = {"url", "sha256", "extract_to"}
 OPTIONAL_DOWNLOAD_KEYS = {"fallback_ips"}
 ALLOWED_DOWNLOAD_KEYS = REQUIRED_DOWNLOAD_KEYS | OPTIONAL_DOWNLOAD_KEYS
+# "Upstream was unreachable on every route" (EX_TEMPFAIL). The entrypoint hook turns this into
+# a skip of the provider's test run rather than a job failure, because that provider shares its
+# CI job with every other provider in its low-dependency slice; any other failure - a checksum
+# mismatch above all - stays a hard exit code 1. Keep the value in sync with
+# PRE_EXTRAS_EXIT_CODE_UPSTREAM_UNREACHABLE in scripts/docker/entrypoint_ci.sh.
+EXIT_CODE_UPSTREAM_UNREACHABLE = 75
 
 
-def fail(msg: str) -> NoReturn:
+def fail(msg: str, exit_code: int = 1) -> NoReturn:
     print(f"ERROR: {msg}", file=sys.stderr)
-    sys.exit(1)
+    sys.exit(exit_code)
 
 
 def validate_manifest(manifest: object, provider_id: str) -> dict:
@@ -169,7 +175,10 @@ def download_with_checksum(
         return
     except (urllib.error.URLError, OSError) as primary_err:
         if not fallback_ips:
-            raise
+            fail(
+                f"all download attempts failed for {url}; last error: {primary_err}",
+                exit_code=EXIT_CODE_UPSTREAM_UNREACHABLE,
+            )
         print(
             f"Primary download failed ({type(primary_err).__name__}: {primary_err}); "
             f"trying {len(fallback_ips)} fallback IP(s)"
@@ -192,7 +201,10 @@ def download_with_checksum(
             last_err = e
             continue
 
-    fail(f"all download attempts failed for {url}; last error: {last_err}")
+    fail(
+        f"all download attempts failed for {url}; last error: {last_err}",
+        exit_code=EXIT_CODE_UPSTREAM_UNREACHABLE,
+    )
 
 
 def safe_extract(archive: Path, target: Path) -> None:
